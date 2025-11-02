@@ -1,0 +1,212 @@
+#include <iostream>
+#include <stdexcept>
+#include <utility>
+#include <iterator>
+
+template <typename T> class Iter;
+template <typename Iter> class RevIter;
+
+template <typename T>
+class Vec {
+    size_t capacity_;
+    size_t count_;
+    T* m_data;
+
+public:
+    Vec() : capacity_(0), count_(0), m_data(nullptr) {}
+
+    ~Vec() {
+        delete[] m_data;
+    }
+
+    Vec(const Vec& other) : capacity_(other.capacity_), count_(other.count_) {
+        m_data = new T[capacity_];
+        for (size_t i = 0; i < count_; ++i) m_data[i] = other.m_data[i];
+    }
+
+    Vec& operator=(const Vec& other) {
+        if (this != &other) {
+            delete[] m_data;
+            capacity_ = other.capacity_;
+            count_ = other.count_;
+            m_data = new T[capacity_];
+            for (size_t i = 0; i < count_; ++i) m_data[i] = other.m_data[i];
+        }
+        return *this;
+    }
+
+    Vec(Vec&& other) noexcept
+        : capacity_(other.capacity_), count_(other.count_), m_data(other.m_data) {
+        other.capacity_ = 0;
+        other.count_ = 0;
+        other.m_data = nullptr;
+    }
+
+    Vec& operator=(Vec&& other) noexcept {
+        if (this != &other) {
+            delete[] m_data;
+            capacity_ = other.capacity_;
+            count_ = other.count_;
+            m_data = other.m_data;
+            other.capacity_ = 0;
+            other.count_ = 0;
+            other.m_data = nullptr;
+        }
+        return *this;
+    }
+
+    size_t size() const { return count_; }
+    size_t capacity() const { return capacity_; }
+    bool empty() const { return count_ == 0; }
+
+    T& operator[](size_t i) {
+        if (i >= count_) throw std::out_of_range("out of range");
+        return m_data[i];
+    }
+
+    const T& operator[](size_t i) const {
+        if (i >= count_) throw std::out_of_range("out of range");
+        return m_data[i];
+    }
+
+    void reserve(size_t new_cap) {
+        if (new_cap <= capacity_) return;
+        T* new_data = new T[new_cap];
+        for (size_t i = 0; i < count_; ++i) new_data[i] = std::move(m_data[i]);
+        delete[] m_data;
+        m_data = new_data;
+        capacity_ = new_cap;
+    }
+
+    void resize(size_t new_size) {
+        if (new_size > capacity_) reserve(new_size);
+        count_ = new_size;
+    }
+
+    void push_back(const T& val) {
+        if (count_ == capacity_) reserve(capacity_ ? capacity_ * 2 : 1);
+        m_data[count_++] = val;
+    }
+
+    void pop_back() {
+        if (count_ == 0) throw std::out_of_range("pop_back on empty");
+        --count_;
+    }
+
+    void clear() { count_ = 0; }
+
+    void insert(size_t pos, const T& val) {
+        if (pos > count_) throw std::out_of_range("insert pos invalid");
+        if (count_ == capacity_) reserve(capacity_ ? capacity_ * 2 : 1);
+        for (size_t i = count_; i > pos; --i) m_data[i] = std::move(m_data[i - 1]);
+        m_data[pos] = val;
+        ++count_;
+    }
+
+    void erase(size_t pos) {
+        if (pos >= count_) throw std::out_of_range("erase pos invalid");
+        for (size_t i = pos; i < count_ - 1; ++i) m_data[i] = std::move(m_data[i + 1]);
+        --count_;
+    }
+
+    template <typename Pred>
+    void erase_if(Pred p) {
+        size_t idx = 0;
+        for (size_t i = 0; i < count_; ++i)
+            if (!p(m_data[i])) m_data[idx++] = std::move(m_data[i]);
+        count_ = idx;
+    }
+
+    T& at(size_t i) {
+        if (i >= count_) throw std::out_of_range("at() out of range");
+        return m_data[i];
+    }
+
+    T& front() { return m_data[0]; }
+    T& back() { return m_data[count_ - 1]; }
+    T* data() const { return m_data; }
+
+    void swap(Vec& other) {
+        std::swap(count_, other.count_);
+        std::swap(capacity_, other.capacity_);
+        std::swap(m_data, other.m_data);
+    }
+
+    using iterator = Iter<T>;
+    using const_iterator = Iter<const T>;
+    using reverse_iterator = RevIter<iterator>;
+    using const_reverse_iterator = RevIter<const_iterator>;
+
+    iterator begin() { return iterator(m_data); }
+    iterator end() { return iterator(m_data + count_); }
+    const_iterator cbegin() const { return const_iterator(m_data); }
+    const_iterator cend() const { return const_iterator(m_data + count_); }
+    reverse_iterator rbegin() { return reverse_iterator(end()); }
+    reverse_iterator rend() { return reverse_iterator(begin()); }
+    const_reverse_iterator crbegin() const { return const_reverse_iterator(cend()); }
+    const_reverse_iterator crend() const { return const_reverse_iterator(cbegin()); }
+};
+
+template <typename T>
+class Iter {
+    T* ptr;
+
+public:
+    using iterator_category = std::random_access_iterator_tag;
+    using value_type = T;
+    using difference_type = std::ptrdiff_t;
+    using pointer = T*;
+    using reference = T&;
+
+    explicit Iter(pointer p = nullptr) : ptr(p) {}
+    reference operator*() const { return *ptr; }
+    pointer operator->() const { return ptr; }
+
+    Iter& operator++() { ++ptr; return *this; }
+    Iter operator++(int) { Iter tmp(*this); ++ptr; return tmp; }
+    Iter& operator--() { --ptr; return *this; }
+    Iter operator--(int) { Iter tmp(*this); --ptr; return tmp; }
+
+    Iter operator+(difference_type n) const { return Iter(ptr + n); }
+    Iter operator-(difference_type n) const { return Iter(ptr - n); }
+    difference_type operator-(const Iter& o) const { return ptr - o.ptr; }
+
+    bool operator==(const Iter& o) const { return ptr == o.ptr; }
+    bool operator!=(const Iter& o) const { return ptr != o.ptr; }
+    bool operator<(const Iter& o) const { return ptr < o.ptr; }
+    bool operator>(const Iter& o) const { return ptr > o.ptr; }
+    bool operator<=(const Iter& o) const { return ptr <= o.ptr; }
+    bool operator>=(const Iter& o) const { return ptr >= o.ptr; }
+};
+
+template <typename Iter>
+class RevIter {
+    Iter current;
+
+public:
+    using iterator_type = Iter;
+    using value_type = typename Iter::value_type;
+    using difference_type = typename Iter::difference_type;
+    using pointer = typename Iter::pointer;
+    using reference = typename Iter::reference;
+
+    explicit RevIter(Iter it) : current(it) {}
+    reference operator*() const { Iter tmp = current; return *--tmp; }
+    pointer operator->() const { return &(**this); }
+
+    RevIter& operator++() { --current; return *this; }
+    RevIter operator++(int) { RevIter tmp(*this); --current; return tmp; }
+    RevIter& operator--() { ++current; return *this; }
+    RevIter operator--(int) { RevIter tmp(*this); ++current; return tmp; }
+
+    RevIter operator+(difference_type n) const { return RevIter(current - n); }
+    RevIter operator-(difference_type n) const { return RevIter(current + n); }
+    difference_type operator-(const RevIter& o) const { return o.current - current; }
+
+    bool operator==(const RevIter& o) const { return current == o.current; }
+    bool operator!=(const RevIter& o) const { return current != o.current; }
+    bool operator<(const RevIter& o) const { return current > o.current; }
+    bool operator<=(const RevIter& o) const { return current >= o.current; }
+    bool operator>(const RevIter& o) const { return current < o.current; }
+    bool operator>=(const RevIter& o) const { return current <= o.current; }
+};
