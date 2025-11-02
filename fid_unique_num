@@ -1,0 +1,8 @@
+#include <vector>
+
+int singleValue(const std::vector<int>& values) {
+    int unique = 0;
+    for (int x : values)
+        unique ^= x;
+    return unique;
+}
