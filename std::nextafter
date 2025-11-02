@@ -1,0 +1,25 @@
+#include <cstdint>
+
+constexpr uint64_t DOUBLE_SMALLEST_BITS = 1;
+constexpr double DOUBLE_SMALLEST_DENORM = 4.9406564584124654e-324;
+
+double nextValue(double from, double toward) {
+    if (from == toward) return toward;
+
+    if (from == 0.0)
+        return toward > 0 ? DOUBLE_SMALLEST_DENORM : -DOUBLE_SMALLEST_DENORM;
+
+    union {
+        double d;
+        uint64_t bits;
+    } conv;
+
+    conv.d = from;
+
+    if ((from > 0) == (toward > from))
+        conv.bits++;
+    else
+        conv.bits--;
+
+    return conv.d;
+}
