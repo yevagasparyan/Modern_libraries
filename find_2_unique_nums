@@ -1,0 +1,19 @@
+#include <vector>
+
+std::vector<int> findUniquePair(const std::vector<int>& numbers) {
+    int xor_all = 0;
+    for (int n : numbers)
+        xor_all ^= n;
+
+    int low_bit = xor_all & -xor_all;
+
+    int first = 0, second = 0;
+    for (int n : numbers) {
+        if (n & low_bit)
+            first ^= n;
+        else
+            second ^= n;
+    }
+
+    return {first, second};
+}
