@@ -1,0 +1,73 @@
+#include <iostream>
+
+template <typename K, typename V>
+class MiniMap {
+    struct Entry {
+        K k;
+        V v;
+        Entry* leftChild;
+        Entry* rightChild;
+
+        Entry(const K& key, const V& val)
+            : k(key), v(val), leftChild(nullptr), rightChild(nullptr) {}
+    };
+
+    Entry* rootNode = nullptr;
+
+    Entry* addNode(Entry* current, const K& key, const V& val) {
+        if (current == nullptr)
+            return new Entry(key, val);
+
+        if (key < current->k)
+            current->leftChild = addNode(current->leftChild, key, val);
+        else if (key > current->k)
+            current->rightChild = addNode(current->rightChild, key, val);
+        else
+            current->v = val; // update if key already exists
+
+        return current;
+    }
+
+    Entry* locate(Entry* current, const K& key) const {
+        if (!current)
+            return nullptr;
+        if (key == current->k)
+            return current;
+        return key < current->k ? locate(current->leftChild, key)
+                                : locate(current->rightChild, key);
+    }
+
+    void destroy(Entry* current) {
+        if (!current) return;
+        destroy(current->leftChild);
+        destroy(current->rightChild);
+        delete current;
+    }
+
+    void traverse(Entry* current) const {
+        if (!current) return;
+        traverse(current->leftChild);
+        std::cout << current->k << " -> " << current->v << '\n';
+        traverse(current->rightChild);
+    }
+
+public:
+    MiniMap() = default;
+
+    ~MiniMap() {
+        destroy(rootNode);
+    }
+
+    void put(const K& key, const V& val) {
+        rootNode = addNode(rootNode, key, val);
+    }
+
+    V* get(const K& key) {
+        Entry* node = locate(rootNode, key);
+        return node ? &node->v : nullptr;
+    }
+
+    void show() const {
+        traverse(rootNode);
+    }
+};
