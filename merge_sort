@@ -1,0 +1,28 @@
+#include <vector>
+
+void combine(std::vector<int>& data, int start, int middle, int end) {
+    int leftSize = middle - start + 1;
+    int rightSize = end - middle;
+
+    std::vector<int> leftPart(data.begin() + start, data.begin() + start + leftSize);
+    std::vector<int> rightPart(data.begin() + middle + 1, data.begin() + middle + 1 + rightSize);
+
+    int l = 0, r = 0, index = start;
+    while (l < leftSize || r < rightSize) {
+        if (r == rightSize || (l < leftSize && leftPart[l] < rightPart[r])) {
+            data[index++] = leftPart[l++];
+        } else {
+            data[index++] = rightPart[r++];
+        }
+    }
+}
+
+void sortMerge(std::vector<int>& data, int start, int end) {
+    if (start >= end) return;
+
+    int middle = (start + end) >> 1;
+
+    sortMerge(data, start, middle);
+    sortMerge(data, middle + 1, end);
+    combine(data, start, middle, end);
+}
