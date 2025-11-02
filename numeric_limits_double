@@ -1,0 +1,21 @@
+template <typename T>
+struct numeric_limits;
+
+template <>
+struct numeric_limits<double> {
+    static constexpr double smallest() noexcept {
+        return 2.2250738585072014e-308;
+    }
+
+    static constexpr double denorm_minimum() noexcept {
+        return 4.9406564584124654e-324;
+    }
+
+    static constexpr double largest() noexcept {
+        return 1.7976931348623157e+308;
+    }
+
+    static constexpr double machine_epsilon() noexcept {
+        return 2.2204460492503131e-16;
+    }
+};
